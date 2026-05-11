@@ -31,6 +31,7 @@ abstract class WalletService(val tenant: String, val accountId: Uuid, val wallet
     abstract suspend fun deleteCredential(id: String, permanent: Boolean): Boolean
     abstract suspend fun restoreCredential(id: String): WalletCredential
     abstract suspend fun getCredential(credentialId: String): WalletCredential
+    abstract suspend fun getCredentialSubject(credentialId: String): String
     abstract suspend fun acceptCredential(parameter: CredentialRequestParameter): Boolean
     abstract suspend fun rejectCredential(parameter: CredentialRequestParameter): Boolean
     abstract suspend fun attachCategory(credentialId: String, categories: List<String>): Boolean

@@ -237,22 +237,6 @@ open class CIProvider(
             errorCode = CredentialErrorCode.unsupported_credential_format
         )
 
-        val proofHeader = credentialRequest.proof?.jwt?.let { JwtUtils.parseJWTHeader(it) }
-            ?: throw CredentialError(
-                credentialRequest = credentialRequest,
-                errorCode = CredentialErrorCode.invalid_or_missing_proof,
-                message = "Proof must be JWT proof"
-            )
-
-        val holderKid = proofHeader[JWTClaims.Header.keyID]?.jsonPrimitive?.content
-        val holderKey = proofHeader[JWTClaims.Header.jwk]?.jsonObject
-
-        if (holderKey.isNullOrEmpty() && holderKid.isNullOrEmpty()) throw CredentialError(
-            credentialRequest = credentialRequest,
-            errorCode = CredentialErrorCode.invalid_or_missing_proof,
-            message = "Proof JWT header must contain kid or jwk claim"
-        )
-
         log.debug { "RETRIEVING ISSUANCE REQUEST FOR CREDENTIAL REQUEST" }
 
         val request = findMatchingIssuanceRequest(
@@ -734,7 +718,7 @@ open class CIProvider(
             )
 
             // create credential result
-            val credentialResult = generateCredential(
+            val credentialResult = generateCredential( 
                 credentialRequest = credentialRequest,
                 session = session
             )

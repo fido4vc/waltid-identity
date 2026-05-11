@@ -8,6 +8,7 @@ import id.walt.policies.models.PresentationVerificationResponse
 import id.walt.policies.policies.JwtSignaturePolicy
 import id.walt.sdjwt.SDJwt
 import id.walt.sdjwt.SDJwtVC
+import id.walt.w3c.schemes.JwsSignatureScheme
 import id.walt.w3c.utils.VCFormat
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.coroutineScope
@@ -18,6 +19,7 @@ import kotlinx.serialization.json.*
 import love.forte.plugin.suspendtrans.annotation.JsPromise
 import love.forte.plugin.suspendtrans.annotation.JvmAsync
 import love.forte.plugin.suspendtrans.annotation.JvmBlocking
+import kotlin.collections.contains
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
 import kotlin.time.measureTime
@@ -106,7 +108,13 @@ object Verifier {
 
         return results
     }
-
+    fun _ldToJwtPayload(jwt: String): JsonObject {
+        val ldp = Json.parseToJsonElement(jwt) as JsonObject
+        return buildJsonObject {
+            put("vp", ldp)
+            put(JwsSignatureScheme.JwsOption.ISSUER, ldp["holder"] ?: JsonNull)
+        }
+    }
     @JvmBlocking
     @JvmAsync
     @JsPromise
@@ -122,10 +130,14 @@ object Verifier {
             policyRequests.forEach { policyRequest ->
                 launch {
                     runCatching {
+                        val format = context["format"] as? VCFormat
                         val dataForPolicy: JsonElement = when (policyRequest.policy) {
                             is JwtVerificationPolicy -> JsonPrimitive(jwt)
+                            is CredentialDataValidatorPolicy, is CredentialWrapperValidatorPolicy -> {
+                                if(format == VCFormat.ldp_vp) _ldToJwtPayload(jwt)
+                                else SDJwt.parse(jwt).fullPayload
+                            }
 
-                            is CredentialDataValidatorPolicy, is CredentialWrapperValidatorPolicy -> SDJwt.parse(jwt).fullPayload
 
                             else -> throw IllegalArgumentException("Unsupported policy type: ${policyRequest.policy::class.simpleName}")
                         }
@@ -155,10 +167,15 @@ object Verifier {
         log.trace { "Verifying presentation with format $format and serialized vp_token $vpToken" }
 
         return when (format) {
-
             VCFormat.mso_mdoc -> TODO("mdoc presentations are not yet supported")
-
             VCFormat.sd_jwt_vc -> verifySDJwtVCPresentation(
+                vpToken = vpToken,
+                vpPolicies = vpPolicies,
+                globalVcPolicies = globalVcPolicies,
+                specificCredentialPolicies = specificCredentialPolicies,
+                presentationContext = presentationContext,
+            )
+            VCFormat.ldp_vp -> verifyLdpVCPresentation(
                 vpToken = vpToken,
                 vpPolicies = vpPolicies,
                 globalVcPolicies = globalVcPolicies,
@@ -258,6 +275,105 @@ object Verifier {
                         )
                     }
                 }
+
+                // VCs
+                verifiableCredentialJwts.forEach { credentialJwt ->
+                    val credentialType = credentialJwt.substringBefore("~").decodeJws().payload.getAnyType()
+
+                    val vcIdx = addResultEntryFor(credentialType)
+
+                    /* Global VC Policies */
+                    runPolicyRequests(
+                        idx = vcIdx,
+                        jwt = credentialJwt,
+                        policies = globalVcPolicies
+                    )
+
+                    /* Specific Credential Policies */
+                    specificCredentialPolicies[credentialType]?.let { specificPolicyRequests ->
+                        runPolicyRequests(
+                            idx = vcIdx,
+                            jwt = credentialJwt,
+                            policies = specificPolicyRequests
+                        )
+                    }
+                }
+            }
+        }
+
+        return PresentationVerificationResponse(
+            results = results,
+            time = time,
+            policiesRun = policiesRun
+        )
+    }
+
+    @JvmBlocking
+    @JvmAsync
+    @JsPromise
+    @JsExport.Ignore
+    suspend fun verifyLdpVCPresentation(
+        vpToken: String,
+        vpPolicies: List<PolicyRequest>,
+        globalVcPolicies: List<PolicyRequest>,
+        specificCredentialPolicies: Map<String, List<PolicyRequest>>,
+        presentationContext: Map<String, Any> = emptyMap(),
+    ): PresentationVerificationResponse {
+        log.info { "Verifying LDP VC Presentation, vp_token: $vpToken" }
+
+        val payload = Json.parseToJsonElement(vpToken).jsonObject
+        val vpType = when (payload.contains("verifiableCredential")) {
+            true -> payload.getW3CType()
+            else -> "" // else is IdToken
+        }
+
+        log.info { "LDP VC Presentation vpType: $vpType" }
+
+        val verifiableCredentialJwts = when (payload.contains("verifiableCredential")) {
+            true -> (payload["verifiableCredential"] ?: TODO("Provided data does not have `verifiableCredential` array."))
+                .jsonArray.map { it.jsonPrimitive.content }
+            else -> emptyList()
+        }
+
+        val results = ArrayList<PresentationResultEntry>()
+
+        val resultMutex = Mutex()
+        var policiesRun = 0
+
+        val time = measureTime {
+            coroutineScope {
+                fun addResultEntryFor(type: String): Int {
+                    results.add(PresentationResultEntry(type))
+                    return results.size - 1
+                }
+
+                suspend fun runPolicyRequests(idx: Int, jwt: String, policies: List<PolicyRequest>, context: Map<String, Any> = presentationContext) =
+                    runPolicyRequests(
+                        jwt = jwt,
+                        policyRequests = policies,
+                        context = context,
+                        onSuccess = { policyResult ->
+                            resultMutex.withLock {
+                                policiesRun++
+                                results[idx].policyResults.add(policyResult)
+                            }
+                        },
+                        onError = { policyResult, exception ->
+                            resultMutex.withLock {
+                                policiesRun++
+                                results[idx].policyResults.add(policyResult)
+                            }
+                        }
+                    )
+
+                /* VP Policies */
+                val vpIdx = addResultEntryFor(vpType)
+                runPolicyRequests(
+                    idx = vpIdx,
+                    jwt = vpToken,
+                    policies = vpPolicies,
+                    context = presentationContext + ("format" to VCFormat.ldp_vp),
+                )
 
                 // VCs
                 verifiableCredentialJwts.forEach { credentialJwt ->

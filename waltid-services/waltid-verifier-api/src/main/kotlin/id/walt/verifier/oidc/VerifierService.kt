@@ -17,6 +17,7 @@ import id.walt.oid4vc.responses.TokenResponse
 import id.walt.policies.models.PolicyRequest
 import id.walt.policies.models.PolicyRequest.Companion.parsePolicyRequests
 import id.walt.policies.policies.JwtSignaturePolicy
+import id.walt.policies.policies.LdSignaturePolicy
 import id.walt.policies.policies.SdJwtVCSignaturePolicy
 import id.walt.verifier.oidc.models.presentedcredentials.PresentationSessionPresentedCredentials
 import id.walt.verifier.oidc.models.presentedcredentials.PresentedCredentialsViewMode
@@ -351,7 +352,9 @@ object VerifierService {
         when (presentationFormat) {
             //VCFormat.mso_mdoc -> TODO()
             VCFormat.sd_jwt_vc -> listOf(PolicyRequest(SdJwtVCSignaturePolicy()))
+            VCFormat.ldp_vc -> listOf(PolicyRequest(LdSignaturePolicy()))
             else -> listOf(PolicyRequest(JwtSignaturePolicy()))
+            // 
         }
 
     private fun getDefaultVCPolicies(presentationFormat: VCFormat): List<PolicyRequest> = when (presentationFormat) {

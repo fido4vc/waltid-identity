@@ -89,8 +89,19 @@ object ProofOfPossessionParameterFactory {
                     )
                 }
             }
-
-            ProofType.ldp_vp -> TODO("ldp_vp proof not yet implemented")
+            ProofType.ldp_vp -> {
+                ProofOfPossession.LDPProofBuilder(
+                    issuerUrl = credentialOffer.credentialIssuer,
+                    nonce = nonce,
+                    keyId = didAuthKeyId,
+                ).let {
+                    ProofOfPossessionParameters(
+                        ProofType.ldp_vp,
+                        it.headers.toJsonElement(),
+                        it.payload.toJsonElement(),
+                    )
+                }
+            }
             else -> {
                 ProofOfPossession.JWTProofBuilder(
                     issuerUrl = credentialOffer.credentialIssuer,

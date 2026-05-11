@@ -1,0 +1,17 @@
+{
+  "name": "fido4vc-waltid-identity-release",
+  "version": "0.0.0-managed-by-semantic-release",
+  "private": true,
+  "description": "Node-side tooling for releasing walt.id Docker images via semantic-release. Not a publishable Node package.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fido4vc/waltid-identity.git"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "semantic-release": "^24.2.0"
+  }
+}

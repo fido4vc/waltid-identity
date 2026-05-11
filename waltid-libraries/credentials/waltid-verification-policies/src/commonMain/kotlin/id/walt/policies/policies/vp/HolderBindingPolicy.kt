@@ -24,7 +24,7 @@ class HolderBindingPolicy : CredentialWrapperValidatorPolicy(
     override val name = "holder-binding"
     override val description =
         "Verifies that issuer of the Verifiable Presentation (presenter) is also the subject of all Verifiable Credentials contained within."
-    override val supportedVCFormats = setOf(VCFormat.jwt_vp, VCFormat.jwt_vp_json)
+    override val supportedVCFormats = setOf(VCFormat.jwt_vp, VCFormat.jwt_vp_json, VCFormat.ldp_vp)
 
     @JvmBlocking
     @JvmAsync

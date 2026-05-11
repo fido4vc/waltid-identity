@@ -10,6 +10,7 @@ import id.walt.webwallet.db.models.WalletCredential
 import id.walt.webwallet.service.oidc4vc.CredentialFilterUtils
 import id.walt.webwallet.web.controllers.exchange.models.oid4vp.IETFSdJwtVpProofParameters
 import id.walt.webwallet.web.controllers.exchange.models.oid4vp.W3cJwtVpProofParameters
+import id.walt.webwallet.web.controllers.exchange.models.oid4vp.W3cLdVpProofParameters
 import kotlinx.serialization.json.*
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
@@ -44,6 +45,43 @@ object ExchangeUtils {
                 throw IllegalArgumentException("resolved did document's authentication relationship first entry is neither a json object nor a json primitive of type string")
             }
         }
+    }
+
+    // See B.1.3.2.5 on https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#name-w3c-verifiable-credentials
+
+    fun getW3cLdVpProofParametersFromWalletCredentials(
+        did: String,
+        didAuthKeyId: String,
+        presentationId: String,
+        audience: String,
+        nonce: String?,
+        credentials: List<WalletCredential>,
+        disclosures: Map<String, List<String>>?
+    ) = CredentialFilterUtils.getJwtVcList(
+        credentials,
+        disclosures,
+    ).takeIf { it.isNotEmpty() }?.let { jwtVcList ->
+        W3cLdVpProofParameters(
+            payload = mapOf(
+                "@context" to listOf(
+                    "https://www.w3.org/2018/credentials/v1",
+                    "https://w3id.org/security/data-integrity/v2"
+                ).toJsonElement(),
+                "type" to listOf("VerifiablePresentation").toJsonElement(),
+                "verifiableCredential" to jwtVcList.toJsonElement(),
+                "id" to presentationId.toJsonElement(),
+                "holder" to did.toJsonElement(),
+                "proof" to mapOf(
+                    "type" to "DataIntegrityProof",
+                    "cryptosuite" to "fido4vc-jcs-2026".toJsonElement(),
+                    "created" to Clock.System.now().toString().toJsonElement(),
+                    "challenge" to (nonce ?: "" ).toJsonElement(),
+                    "domain" to audience.toJsonElement(),
+                    "proofPurpose" to "authentication".toJsonElement(),
+                    "verificationMethod" to didAuthKeyId.toJsonElement(),
+                ).toJsonElement()
+            ).filterValues { it.toString().isNotBlank() }
+        )
     }
 
     fun getW3cJwtVpProofParametersFromWalletCredentials(

@@ -1,3 +1,4 @@
+// PATH!: External Signatures Controller for OID4VP and OID4VCI flows
 @file:OptIn(ExperimentalUuidApi::class)
 
 package id.walt.webwallet.web.controllers.exchange
@@ -51,6 +52,7 @@ import io.ktor.server.response.*
 import io.ktor.util.*
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -174,6 +176,15 @@ fun Application.exchangeExternalSignatures() = walletRoute {
                     matchedCredentials,
                     req.disclosures,
                 )
+                val w3cLdVpTokenParams = ExchangeUtils.getW3cLdVpProofParametersFromWalletCredentials(
+                    walletDID.did,
+                    didFirstAuthKeyId,
+                    presentationId,
+                    resolvedAuthReq.clientId,
+                    resolvedAuthReq.nonce,
+                    matchedCredentials,
+                    req.disclosures,
+                )
 
                 val (rootPathVP, _) = if (ietfVpTokenParams != null && w3cJwtVpTokenParams == null) {
                     Pair("$", "$[0]")
@@ -186,7 +197,7 @@ fun Application.exchangeExternalSignatures() = walletRoute {
                     id = presentationId,
                     definitionId = presentationId,
                     descriptorMap = matchedCredentials.mapIndexed { index, credential ->
-                        when (credential.format) {
+                        when (credential.format) { // why ...
                             CredentialFormat.sd_jwt_vc -> {
                                 credentialWallet.buildDescriptorMappingSDJwtVC(
                                     resolvedAuthReq.presentationDefinition,
@@ -200,7 +211,7 @@ fun Application.exchangeExternalSignatures() = walletRoute {
                             }
 
                             else -> {
-                                credentialWallet.buildDescriptorMappingJwtVP(
+                                credentialWallet.buildDescriptorMappingLdVp( // HARDCODED! LdVp
                                     resolvedAuthReq.presentationDefinition,
                                     index,
                                     credential.document,
@@ -216,6 +227,7 @@ fun Application.exchangeExternalSignatures() = walletRoute {
                     presentationSubmission,
                     w3CJwtVpProofParameters = w3cJwtVpTokenParams,
                     ietfSdJwtVpProofParameters = ietfVpTokenParams,
+                    w3cLdVpProofParameters = w3cLdVpTokenParams,
                 )
 
             }.onSuccess { responsePayload ->
@@ -283,13 +295,15 @@ fun Application.exchangeExternalSignatures() = walletRoute {
                 val presentationSubmission = req.presentationSubmission
                 val presentedCredentialIdList = req.selectedCredentialIdList
 
-                val vpTokenProofs = (if (req.ietfSdJwtVpProofs != null) {
-                    req.ietfSdJwtVpProofs.map { ietfVpProof ->
-                        ietfVpProof.sdJwtVc + ietfVpProof.vpTokenProof
+                val vpTokenProofs: List<JsonElement> = run {
+                    val list = mutableListOf<JsonElement>()
+                    req.ietfSdJwtVpProofs?.forEach { ietfVpProof ->
+                        list.add((ietfVpProof.sdJwtVc + ietfVpProof.vpTokenProof).toJsonElement())
                     }
-                } else {
-                    listOf("")
-                }).plus(req.w3cJwtVpProof ?: "").filter { it.isNotEmpty() }
+                    req.w3cJwtVpProof?.takeIf { it.isNotEmpty() }?.let { list.add(it.toJsonElement()) }
+                    req.w3cLdVpProof?.takeIf { it.isNotEmpty() }?.let { list.add(it.toJsonElement()) }
+                    list
+                }
                 logger.debug { "vpTokenProofs: $vpTokenProofs" }
 
                 val tokenResponse = if (vpTokenProofs.size == 1) {
@@ -465,8 +479,7 @@ fun Application.exchangeExternalSignatures() = walletRoute {
 
                 val walletDID = req.did?.let {
                     DidsService.get(walletService.walletId, req.did)
-                } ?: walletService.listDids().firstOrNull()
-                ?: throw IllegalArgumentException("No DID to use supplied and no DID was found in wallet.")
+                } ?: throw IllegalArgumentException("No DID to use supplied and no DID was found in wallet.")
                 logger.debug { "Retrieved wallet DID: $walletDID" }
                 val didFirstAuthKeyId = ExchangeUtils.getFirstAuthKeyIdFromDidDocument(walletDID.document)
                 logger.debug { "Resolved first did authentication keyId: $didFirstAuthKeyId" }

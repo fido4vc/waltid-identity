@@ -158,8 +158,6 @@ fun Application.keys() = walletRoute {
                 call.respond(HttpStatusCode.BadRequest, it.localizedMessage)
             }
         }
-
-
         post("import", {
             summary = "Import an existing key"
             request {

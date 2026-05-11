@@ -14,6 +14,7 @@ import kotlinx.serialization.*
 import kotlinx.serialization.json.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
+import kotlin.toString
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -106,6 +107,46 @@ data class ProofOfPossession private constructor(
         )
     }
 
+    // see 7.2.1.2 https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0-ID1.html#name-proof-types
+    class LDPProofBuilder(
+        private val issuerUrl: String,
+        private val keyId: String,
+        private val nonce: String? = null,
+    ) : ProofBuilder() {
+        val headers = buildJsonObject {}
+
+        val payload = buildJsonObject {
+            put("@context", buildJsonArray {
+                add("https://www.w3.org/ns/credentials/v2")
+                add("https://www.w3.org/ns/credentials/examples/v2")
+            })
+            put("type", buildJsonArray {
+                add("VerifiablePresentation")
+            })
+            put("holder", keyId)
+            put("proof", buildJsonObject {
+                put("type", "DataIntegrityProof")
+                put("cryptosuite", "fido4vc-jcs-2026")
+                put("proofPurpose", "authentication")
+                put("verificationMethod", keyId)
+                put("created", Clock.System.now().toString())
+                nonce?.let{ put("challenge", it) }
+                put("domain", issuerUrl)
+            })
+        }
+
+        @OptIn(ExperimentalUuidApi::class)
+
+        override suspend fun build(key: Key) = TODO("ldp_vp signing not yet implemented")
+
+        fun build(signedVp: String) = ProofOfPossession(
+            proofType = ProofType.ldp_vp,
+            jwt = null,
+            cwt = null,
+            ldp_vp = Json.parseToJsonElement(signedVp).jsonObject
+        )
+    }
+
     /**
      * @param coseKey Cose Key structure, for device/holder key, mutually exclusive with x5Cert and x5Chain!
      * @param x5Cert X509 certificate, for device/holder key, mutually exclusive with coseKey and x5Chain!
@@ -168,6 +209,8 @@ data class ProofOfPossession private constructor(
     val isCwtProofType get() = proofType == ProofType.cwt && !cwt.isNullOrEmpty()
 
     val isJwtProofType get() = proofType == ProofType.jwt && !jwt.isNullOrEmpty()
+
+    val isLdpVpProofType get() = proofType == ProofType.ldp_vp && !ldp_vp.isNullOrEmpty()
 }
 
 internal object ProofOfPossessionSerializer :

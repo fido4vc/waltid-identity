@@ -30,7 +30,7 @@ object IssuanceServiceExternalSignatures : IssuanceServiceBase() {
             //TODO: Not yet implemented
             throw UnsupportedOperationException("MS Entra credential issuance requests with externally provided signatures are not supported yet")
         } else {
-            processPrepareCredentialOffer(
+            processPrepareCredentialOffer( 
                 OpenID4VCI.parseAndResolveCredentialOfferRequestUrl(offerURL),
                 did,
                 didAuthKeyId,
@@ -188,8 +188,9 @@ object IssuanceServiceExternalSignatures : IssuanceServiceBase() {
             ProofType.cwt -> {
                 ProofOfPossession.CWTProofBuilder("").build(signedProofOfPossession)
             }
-
-            ProofType.ldp_vp -> TODO("ldp_vp proof not yet implemented")
+            ProofType.ldp_vp -> {
+                ProofOfPossession.LDPProofBuilder("", "").build(signedProofOfPossession)
+            }
             else -> {
                 ProofOfPossession.JWTProofBuilder("").build(signedProofOfPossession)
             }

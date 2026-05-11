@@ -28,6 +28,15 @@ import id.walt.oid4vc.responses.AuthorizationErrorCode
 import id.walt.oid4vc.responses.TokenResponse
 import id.walt.oid4vc.util.COSESign1Utils
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.utils.io.core.*
 import kotlinx.serialization.json.*
 import kotlin.time.Clock
@@ -35,6 +44,13 @@ import kotlin.time.ExperimentalTime
 
 object OpenID4VC {
     private val log = KotlinLogging.logger { }
+
+    private val ldpVerificationClient = HttpClient {
+        expectSuccess = false
+        install(ContentNegotiation) {
+            json()
+        }
+    }
 
     suspend fun generateToken(
         sub: String,
@@ -422,6 +438,27 @@ object OpenID4VC {
             )
 
         return key.verifyJws(token).also { log.debug { "VERIFICATION IS: $it" } }.isSuccess
+    }
+
+    suspend fun verifyLdpSignature(target: TokenTarget, ldp: JsonObject): Boolean {
+        log.debug { "Verifying LDP_VP: $ldp" }
+        log.debug { "LDP Verification: target: $target" }
+
+        return runCatching {
+            val response = ldpVerificationClient.post("http://localhost:8081/verify") {
+                setBody(ldp)
+                header(HttpHeaders.ContentType, ContentType.Application.Json)
+            }
+
+            val responseBody = response.body<JsonObject>()
+            val verified = responseBody["verified"]?.jsonPrimitive?.content?.toBoolean() ?: false
+
+            log.debug { "LDP VERIFICATION IS: $verified" }
+            verified
+        }.getOrElse { exception ->
+            log.error { "LDP verification failed: ${exception.message}" }
+            false
+        }
     }
 
     fun verifyCOSESign1Signature(

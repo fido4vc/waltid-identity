@@ -525,6 +525,31 @@ class TestCredentialWallet(
         )
     }
 
+    fun buildDescriptorMappingLdVp( // Hardcoded...
+        presentationDefinition: PresentationDefinition?,
+        index: Int,
+        vcJwsStr: String,
+        rootPath: String = "$",
+    ) = let {
+        val vcJws = vcJwsStr.base64UrlToBase64().decodeJws()
+        val type = vcJws.payload["vc"]?.jsonObject?.get("type")?.jsonArray?.last()?.jsonPrimitive?.contentOrNull
+            ?: "VerifiableCredential"
+
+        DescriptorMapping(
+            id = presentationDefinition?.inputDescriptors?.get(index)?.id ?: getDescriptorId(
+                type,
+                presentationDefinition
+            ),
+            format = VCFormat.ldp_vp,
+            path = rootPath,
+            pathNested = DescriptorMapping(
+                id = getDescriptorId(type, presentationDefinition),//session.presentationDefinition?.inputDescriptors?.get(index)?.id,
+                format = VCFormat.jwt_vc, // jwt_vc_json
+                path = "$rootPath.verifiableCredential[$index]", //.vp.verifiableCredentials
+            )
+        )
+    }
+
     private fun getDescriptorId(
         type: String,
         presentationDefinition: PresentationDefinition?,

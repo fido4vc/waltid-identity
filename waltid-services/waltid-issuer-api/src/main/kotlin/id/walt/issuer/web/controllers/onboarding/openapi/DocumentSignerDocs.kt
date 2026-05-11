@@ -82,8 +82,8 @@ object DocumentSignerDocs {
                             "country": "US",
                             "commonName": "Example DS",
                             "crlDistributionPointUri": "https://iaca.example.com/crl",
-                            "notBefore": "2026-01-01T00:00:00Z",
-                            "notAfter": "2027-01-01T00:00:00Z"
+                            "notBefore": "2027-01-01T00:00:00Z",
+                            "notAfter": "2028-01-01T00:00:00Z"
                         }
                     }
                 """.trimIndent()
@@ -106,7 +106,7 @@ object DocumentSignerDocs {
                                 },
                                 "stateOrProvinceName": "Αττική",
                                 "organizationName": "Υπουργείο Μεταφορών",
-                                "notBefore": "2026-01-01T00:00:00Z",
+                                "notBefore": "2027-01-01T00:00:00Z",
                                 "notAfter": "2040-05-01T00:00:00Z",
                                 "crlDistributionPointUri": "https://crl.gov.gr/iaca.crl"
                             },
@@ -129,8 +129,8 @@ object DocumentSignerDocs {
                             "stateOrProvinceName": "Αττική",
                             "organizationName": "Υπουργείο Μεταφορών",
                             "localityName": "Χολαργός",
-                            "notBefore": "2026-01-01T00:00:10Z",
-                            "notAfter": "2026-06-01T00:00:00Z"
+                            "notBefore": "2027-01-01T00:00:10Z",
+                            "notAfter": "2027-06-01T00:00:00Z"
                         }
                     }
                 """.trimIndent()

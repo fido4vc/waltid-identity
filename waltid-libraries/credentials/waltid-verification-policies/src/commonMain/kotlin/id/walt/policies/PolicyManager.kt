@@ -37,6 +37,7 @@ object PolicyManager {
         registerPolicies(
             JwtSignaturePolicy(),
             SdJwtVCSignaturePolicy(),
+            LdSignaturePolicy(),
             JsonSchemaPolicy(),
             ExpirationDatePolicy(),
             NotBeforeDatePolicy(),

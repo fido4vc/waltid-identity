@@ -17,6 +17,7 @@ import id.walt.commons.web.WebException
 import id.walt.crypto.keys.*
 import id.walt.crypto.keys.jwk.JWKKey
 import id.walt.crypto.utils.JsonUtils.toJsonObject
+import id.walt.crypto.utils.JwsUtils.decodeJws
 import id.walt.did.dids.DidService
 import id.walt.did.dids.registrar.LocalRegistrar
 import id.walt.did.dids.registrar.dids.DidCheqdCreateOptions
@@ -162,6 +163,12 @@ class SSIKit2WalletService(
     override suspend fun getCredential(credentialId: String): WalletCredential =
         credentialService.get(walletId, credentialId)
             ?: throw NotFoundException("WalletCredential not found for credentialId: $credentialId")
+
+    override suspend fun getCredentialSubject(credentialId: String): String = let {
+        val credential = credentialService.get(walletId, credentialId)
+            ?: throw NotFoundException("WalletCredential not found for credentialId: $credentialId")
+        credential.document.decodeJws().payload["sub"]!!.jsonPrimitive.content.split("#").first()
+    }
 
     override suspend fun attachCategory(credentialId: String, categories: List<String>): Boolean =
         credentialService.categoryService.add(

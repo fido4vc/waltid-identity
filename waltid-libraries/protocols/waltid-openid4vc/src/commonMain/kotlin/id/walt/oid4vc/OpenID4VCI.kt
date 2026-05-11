@@ -565,7 +565,27 @@ object OpenID4VCI {
                     }
                 }
             }
+        ProofType.ldp_vp -> {
+            val ldp = proofOfPossession.ldp_vp ?: return null
+            val proofElement = ldp["proof"]
+            val challengeElement = when (proofElement) {
+                is JsonObject -> proofElement["challenge"]
+                is JsonArray -> proofElement.firstOrNull()?.let { if (it is JsonObject) it["challenge"] else null }
+                else -> null
+            }
+            if (challengeElement is JsonPrimitive && challengeElement.isString) challengeElement.content else null
+        }else -> null
+    }
 
+    fun getKidFromProof(proofOfPossession: ProofOfPossession): String? = when (proofOfPossession.proofType) {
+        ProofType.jwt -> {
+            val header = JwtUtils.parseJWTHeader(proofOfPossession.jwt!!)
+            header[JWTClaims.Header.keyID]?.jsonPrimitive?.content
+        }
+        ProofType.ldp_vp -> {
+            val holderElement = proofOfPossession.ldp_vp!!["holder"] ?: return null
+            if (holderElement is JsonPrimitive && holderElement.isString) holderElement.content else null
+        }
         else -> null
     }
 
@@ -589,7 +609,12 @@ object OpenID4VCI {
                     token = credentialRequest.proof.cwt!!
                 ) && getNonceFromProof(credentialRequest.proof) == nonce
             }
-
+            credentialRequest.proof.isLdpVpProofType -> {
+                OpenID4VC.verifyLdpSignature(
+                    target = TokenTarget.PROOF_OF_POSSESSION,
+                    ldp = credentialRequest.proof.ldp_vp!!
+                ) && getNonceFromProof(credentialRequest.proof) == nonce // Just a placeholder for now
+            }
             else -> false
         }
     }
@@ -755,17 +780,23 @@ object OpenID4VCI {
         x5Chain: List<String>? = null,
         display: List<DisplayProperties>? = null
     ): String {
-        val proofHeader = credentialRequest.proof?.jwt?.let { JwtUtils.parseJWTHeader(it) }
+        val proof = credentialRequest.proof ?: throw CredentialError(
+            credentialRequest = credentialRequest,
+            errorCode = CredentialErrorCode.invalid_or_missing_proof,
+            message = "No proof found on credential request"
+        )
+
+        log.debug { "Proof type is ${proof.proofType}" }
+
+        val holderKid = getKidFromProof(proof)
             ?: throw CredentialError(
                 credentialRequest = credentialRequest,
                 errorCode = CredentialErrorCode.invalid_or_missing_proof,
-                message = "Proof must be JWT proof"
+                message = "kid is required"
             )
 
-        val holderKid = proofHeader[JWTClaims.Header.keyID]?.jsonPrimitive?.content
-
         val holderDid =
-            if (!holderKid.isNullOrEmpty() && DidUtils.isDidUrl(holderKid)) holderKid.substringBefore("#") else null
+            if (DidUtils.isDidUrl(holderKid)) holderKid.substringBefore("#") else null
 
         val additionalJwtHeaders = x5Chain?.let {
             mapOf(JWTClaims.Header.x5c to JsonArray(it.map { cert -> cert.toJsonElement() }))

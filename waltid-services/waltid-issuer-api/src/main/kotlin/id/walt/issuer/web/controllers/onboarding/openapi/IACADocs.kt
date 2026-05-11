@@ -44,7 +44,7 @@ object IACADocs {
                             "issuerAlternativeNameConf": {
                                 "uri": "https://ca.bund.de"
                             },
-                            "notBefore": "2026-01-01T00:00:00Z",
+                            "notBefore": "2029-01-01T00:00:00Z",
                             "notAfter": "2041-01-01T00:00:00Z"
                         }
                     }
@@ -65,7 +65,7 @@ object IACADocs {
                             },
                             "stateOrProvinceName": "Αττική",
                             "organizationName": "Υπουργείο Μεταφορών",
-                            "notBefore": "2026-01-01T00:00:00Z",
+                            "notBefore": "2029-01-01T00:00:00Z",
                             "notAfter": "2040-05-01T00:00:00Z",
                             "crlDistributionPointUri": "https://crl.gov.gr/iaca.crl"
                         }
