@@ -1,3 +1,10 @@
+## [0.1.1](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.1.0...fido4vc-v0.1.1) (2026-05-15)
+
+
+### Bug Fixes
+
+* **docker:** drop -x integrationTest from gradle build steps ([ea79337](https://github.com/fido4vc/waltid-identity/commit/ea79337d50bf5fb3ff77fe90215b7f8523b896ff))
+
 # [0.1.0](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.0.0...fido4vc-v0.1.0) (2026-05-15)
 
 
