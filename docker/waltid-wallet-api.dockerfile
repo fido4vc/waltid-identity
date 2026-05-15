@@ -16,6 +16,7 @@ WORKDIR /waltid-wallet-api
 COPY --from=builder \
     /build/waltid-services/waltid-wallet-api/build/install/waltid-wallet-api/ \
     .
+COPY --from=builder /build/waltid-services/waltid-wallet-api/config ./config
 
 EXPOSE 7001
 CMD ["./bin/waltid-wallet-api"]

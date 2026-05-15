@@ -19,6 +19,7 @@ WORKDIR /waltid-verifier-api
 COPY --from=builder \
     /build/waltid-services/waltid-verifier-api/build/install/waltid-verifier-api/ \
     .
+COPY --from=builder /build/waltid-services/waltid-verifier-api/config ./config
 
 EXPOSE 7003
 CMD ["./bin/waltid-verifier-api"]

@@ -15,6 +15,7 @@ WORKDIR /waltid-issuer-api
 COPY --from=builder \
     /build/waltid-services/waltid-issuer-api/build/install/waltid-issuer-api/ \
     .
+COPY --from=builder /build/waltid-services/waltid-issuer-api/config ./config
 
 EXPOSE 7002
 CMD ["./bin/waltid-issuer-api"]
