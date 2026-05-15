@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.1.1...fido4vc-v0.1.2) (2026-05-15)
+
+
+### Bug Fixes
+
+* **docker:** copy config/ dir into walt.id runtime images ([b286c9e](https://github.com/fido4vc/waltid-identity/commit/b286c9eb643164fe98784f3df6eaf3e31f1f7137))
+
 ## [0.1.1](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.1.0...fido4vc-v0.1.1) (2026-05-15)
 
 
