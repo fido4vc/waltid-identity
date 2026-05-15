@@ -1,5 +1,6 @@
 {
   "branches": ["fido4vc-waltid-poc"],
+  "tagFormat": "fido4vc-v${version}",
   "plugins": [
     "@semantic-release/commit-analyzer",
     "@semantic-release/release-notes-generator",
