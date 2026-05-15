@@ -6,7 +6,7 @@ WORKDIR /build
 COPY . /build
 
 RUN gradle :waltid-services:waltid-issuer-api:installDist \
-    --no-daemon -x test -x integrationTest
+    --no-daemon -x test
 
 # --- runtime ----------------------------------------------------------------
 FROM eclipse-temurin:21-jre
