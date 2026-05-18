@@ -445,7 +445,7 @@ object OpenID4VC {
         log.debug { "LDP Verification: target: $target" }
 
         return runCatching {
-            val response = ldpVerificationClient.post("http://localhost:8081/verify") {
+            val response = ldpVerificationClient.post("${ldpVerificationSidecarBaseUrl()}/verify") {
                 setBody(ldp)
                 header(HttpHeaders.ContentType, ContentType.Application.Json)
             }
