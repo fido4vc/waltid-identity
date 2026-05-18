@@ -1,3 +1,10 @@
+## [0.1.3](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.1.2...fido4vc-v0.1.3) (2026-05-18)
+
+
+### Bug Fixes
+
+* **openid4vc:** make LDP PoP sidecar URL configurable via env ([fd96bf8](https://github.com/fido4vc/waltid-identity/commit/fd96bf8cbb94a1403e9645e513f71ef97c2405e9))
+
 ## [0.1.2](https://github.com/fido4vc/waltid-identity/compare/fido4vc-v0.1.1...fido4vc-v0.1.2) (2026-05-15)
 
 
